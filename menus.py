@@ -139,6 +139,7 @@ class VLCApp:
         # XXXX case
         elif bool(re.fullmatch(r"\d{4}", time)):
             min = time[:2]
+            # test making changes
             sec = time[2:]
 
         # XXX case
