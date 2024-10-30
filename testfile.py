@@ -7,10 +7,19 @@ class MyGUI:
     def __init__(self):
         self.main_window = tk.Tk()
 
+        self.main_window.geometry("700x450")
+        self.main_window.config(bg="black")
+
         self.button = tk.Button(text="Enter Repository Folder", command=self.button_press)
         self.button.pack()
         self.main_window.mainloop()
 
+        self.menubar = tk.Menu(self.main_window)
+
+        self.change_repository = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label = 'Testing', menu = self.change_repository)
+        self.change_repository.add_command(label = "test1", command = None)
+        self.main_window.config(menu=self.menubar)
     # Gets a file and sends the path to get_next_file and then displays and plays the file
     """def button_press(self, event=None):
         file_path = filedialog.askopenfilename()
@@ -21,6 +30,7 @@ class MyGUI:
     def button_press(self, event=None):
         user_data = open("userData.txt", "r")
         dir_in_file = user_data.readline().strip()
+        print(dir_in_file)
         if dir_in_file == "":
             repository_path = filedialog.askdirectory()
             write_user_data = open("userData.txt", "w")
@@ -28,12 +38,14 @@ class MyGUI:
         else:
             repository_path = dir_in_file
         main_files = sorted(os.listdir(repository_path))
-        for file in main_files:
+        for i in range(len(main_files)):
+            file = main_files[i]
             if not file.startswith("."):
-                if os.path.isfile(file):
-                    print("file")
+                file_path = os.path.join(repository_path, file)
+                if os.path.isfile(file_path):
+                    print(file)
                 else:
-                    print("folder")
+                    print(file)
 
     def get_next_file(self, file_path):
         file_directory = os.path.dirname(file_path)

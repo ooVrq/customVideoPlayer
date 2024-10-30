@@ -166,7 +166,7 @@ class VLCApp:
         self.player.set_hwnd(self.video_frame.winfo_id())
 
     def play_video(self):
-        file = self.vlc_instance.media_new("C:\\Users\\kwuh\\Desktop\\croc_v10.0.12_Windows-64bit\\OnePace\\[One Pace][1067-1068] Egghead 07 [1080p][A7AD080A].mkv")
+        file = self.vlc_instance.media_new("/Users/ryantracy/Desktop/TestFolder/One Pace/Egghead/[One Pace][1075-1076] Egghead 11 [1080p][59087997].mkv")
         self.player.set_media(file)
         self.player.play()
         self.volume_slider.set(self.player.audio_get_volume())
