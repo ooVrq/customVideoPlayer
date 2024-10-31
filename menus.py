@@ -174,13 +174,13 @@ class VLCApp:
 
         if input == "sf" or input == "setfile":
             self.get_new_file()
+            file = self.vlc_instance.media_new(self.curr_path)
+
+            self.player.set_media(file)
+            self.player.play()
         elif input == "next":
             self.play_next_file()
 
-        file = self.vlc_instance.media_new(self.curr_path)
-
-        self.player.set_media(file)
-        self.player.play()
         self.volume_slider.set(self.player.audio_get_volume())
 
     def get_new_file(self):
@@ -205,6 +205,7 @@ class VLCApp:
 
     def play_next_file(self):
         path = self.get_next_file()
+        print(path)
 
         if self.player.is_playing():
             self.player.stop()
