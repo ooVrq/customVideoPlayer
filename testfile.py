@@ -2,6 +2,7 @@ import os
 import vlc
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import ttk
 
 class MyGUI:
     def __init__(self):
@@ -12,7 +13,6 @@ class MyGUI:
 
         self.button = tk.Button(text="Enter Repository Folder", command=self.button_press)
         self.button.pack()
-        self.main_window.mainloop()
 
         self.menubar = tk.Menu(self.main_window)
 
@@ -59,7 +59,6 @@ class MyGUI:
             return os.path.join(file_directory, files[curr_index + 1])
         except IndexError:
             print("Last file in Folder")
-
     def play_next_file(self, path):
         if self.player.is_playing():
             self.player.stop()
@@ -72,4 +71,5 @@ class MyGUI:
 def main():
 
     new_window = MyGUI()
+    new_window.main_window.mainloop()
 main()

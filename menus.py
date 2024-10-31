@@ -128,6 +128,8 @@ class VLCApp:
             self.player.play()
         if bool(re.fullmatch(r"\d{4}|\d{2}:\d{2}|\d{3}|\d{2}|\d{1}|\d{1}:\d{2}:\d{2}", input)):
             self.set_video_time(input)
+        if input == "setfile" or input == "sf" or input == "next":
+            self.play_video(input)
         self.console_frame.pack_forget()
         self.root.focus_set()
 
@@ -158,18 +160,59 @@ class VLCApp:
         print(min, sec)
 
     def create_video(self):
-        self.video_frame = tk.Canvas(self.root, bg="blue")
+        self.video_frame = tk.Canvas(self.root, bg="purple")
         self.video_frame.pack(fill=tk.BOTH, expand=True)
 
 
     def set_output(self):
         self.player.set_hwnd(self.video_frame.winfo_id())
 
-    def play_video(self):
-        file = self.vlc_instance.media_new("/Users/ryantracy/Desktop/TestFolder/One Pace/Egghead/[One Pace][1075-1076] Egghead 11 [1080p][59087997].mkv")
+    def play_video(self, input):
+
+        if self.player.is_playing():
+            self.player.stop()
+
+        if input == "sf" or input == "setfile":
+            self.get_new_file()
+        elif input == "next":
+            self.play_next_file()
+
+        file = self.vlc_instance.media_new(self.curr_path)
+
         self.player.set_media(file)
         self.player.play()
         self.volume_slider.set(self.player.audio_get_volume())
+
+    def get_new_file(self):
+
+        file_types = [("Video Files", "*.mp4;*.mkv;*.avi;*.mov"), ("Audio Files", "*.mp3;*.wav"),
+                      ("All Files", "*.*")]
+        self.curr_path = filedialog.askopenfilename(filetypes=file_types)
+
+    def get_next_file(self):
+        file_path = self.curr_path
+        file_directory = os.path.dirname(file_path)
+        files = sorted(os.listdir(file_directory))
+
+        raw_file_name = os.path.basename(file_path)
+
+        # Use a try to catch last file in folder error
+        try:
+            curr_index = files.index(raw_file_name)
+            return os.path.join(file_directory, files[curr_index + 1])
+        except IndexError:
+            print("Last file in Folder")
+
+    def play_next_file(self):
+        path = self.get_next_file()
+
+        if self.player.is_playing():
+            self.player.stop()
+
+        new_media_obj = self.vlc_instance.media_new(path)
+
+        self.player.set_media(new_media_obj)
+        self.player.play()
 
     def create_progress_bar(self):
         self.progress_frame = tk.Frame(self.button_frame, bg=self.button_color, height=30)
@@ -255,6 +298,7 @@ class VLCApp:
         else:
             self.pause_button.config(image=self.play_photo)
             self.player.pause()
+
 
     def set_fullscreen(self, event=None):
         fullscreen_state = self.player.get_fullscreen()

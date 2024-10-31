@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 
 def main():
     my_page = VLCApp()
-    my_page.play_video()
+    # my_page.play_video()
 
 
     tk.mainloop()
