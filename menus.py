@@ -96,40 +96,32 @@ class VLCApp:
         self.button_frame.grid_rowconfigure(1, weight=1)
         self.button_frame.grid_columnconfigure(0, weight=1)
         self.button_frame.grid_columnconfigure(1, weight=1)
-        self.button_frame.grid_columnconfigure(2, weight=0)
-        self.button_frame.grid_columnconfigure(2, weight=0)
 
         # Start program by packing or unpacking button frame
-        #self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
-        # Frame for centering buttons
-        self.center_frame = tk.Frame(self.button_frame, bg=self.button_color)
-        # self.center_frame.pack(side=tk.TOP, padx=10, pady=5)
-        self.center_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5)
+        self.top_frame = tk.Frame(self.button_frame, bg=self.button_color)
+        self.top_frame.grid(row=0, column=0, sticky="ew", columnspan=3, padx=10, pady=5)
 
         # Pause Button
         self.play_image = Image.open("icons/isplay.png")
         self.play_photo = ImageTk.PhotoImage(self.play_image)
         self.pause_image = Image.open("icons/ispause.png")
         self.pause_photo = ImageTk.PhotoImage(self.pause_image)
-        self.pause_button = tk.Button(self.center_frame, image=self.play_photo, command=self.pause_video,)
+        self.pause_button = tk.Button(self.top_frame, image=self.play_photo, command=self.pause_video,)
         self.pause_button.pack(side=tk.LEFT, padx=5)
-        # self.pause_button.grid(row=0, column=0, padx=5)
 
         # Fullscreen Button
         self.fullscreen_image = Image.open("icons/fullscreen.png")
         self.fullscreen_photo = ImageTk.PhotoImage(self.fullscreen_image)
-        self.toggle_fullscreen = tk.Button(self.center_frame, image=self.fullscreen_photo, command=self.set_fullscreen)
+        self.toggle_fullscreen = tk.Button(self.top_frame, image=self.fullscreen_photo, command=self.set_fullscreen)
         self.toggle_fullscreen.pack(side=tk.LEFT, padx=5)
-        # self.toggle_fullscreen.grid(row=0,column=1, padx=5)
 
         # Volume Slider
-        self.volume_label = tk.Label(self.button_frame, text="Volume: 0%")
-        self.volume_slider = ttk.Scale(self.button_frame, from_=0, to=100, orient=tk.HORIZONTAL,  command=self.slider_volume)
-        # self.volume_label.pack(side=tk.RIGHT, padx=5)
-        self.volume_label.grid(row=0, column=2, padx=(5,0), sticky="e")
-        # self.volume_slider.pack(side=tk.RIGHT, padx=5)
-        self.volume_slider.grid(row=0, column=3, padx=(5, 10), sticky="e")
+        self.volume_label = tk.Label(self.top_frame, text="Volume: 0%", width=10)
+        self.volume_slider = ttk.Scale(self.top_frame, from_=0, to=100, orient=tk.HORIZONTAL,  command=self.slider_volume)
+        self.volume_label.pack(side=tk.RIGHT, padx=5)
+        self.volume_slider.pack(side=tk.RIGHT, padx=5)
 
     def create_console(self):
         font_style = tkFont.Font(family="Courier New", size=12, weight="normal")
@@ -423,5 +415,8 @@ class VLCApp:
             self.player.audio_set_volume(new_volume)
 
     # Still unimplemented - Handles functionality of volume slider in button menu
-    def slider_volume(self):
-        return
+    def slider_volume(self, event=None):
+        volume = int(self.volume_slider.get())
+        self.volume_label.config(text="Volume: " + str(volume)+"%")
+        self.player.audio_set_volume(volume)
+        print(self.player.audio_get_volume())
