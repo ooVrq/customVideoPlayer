@@ -114,10 +114,10 @@ class VLCApp:
         self.toggle_fullscreen.pack(side=tk.LEFT, padx=5)
 
         # Volume Slider
-        self.volume_label = tk.Label(self.center_frame, text="Volume: 0%")
-        self.volume_slider = ttk.Scale(self.center_frame, from_=0, to=100, orient=tk.HORIZONTAL,  command=self.slider_volume)
-        self.volume_label.pack(side=tk.LEFT, padx=5)
-        self.volume_slider.pack(side=tk.LEFT, padx=5)
+        self.volume_label = tk.Label(self.button_frame, text="Volume: 0%")
+        self.volume_slider = ttk.Scale(self.button_frame, from_=0, to=100, orient=tk.HORIZONTAL,  command=self.slider_volume)
+        self.volume_label.pack(side=tk.RIGHT, padx=5)
+        self.volume_slider.pack(side=tk.RIGHT, padx=5)
 
     def create_console(self):
         font_style = tkFont.Font(family="Courier New", size=12, weight="normal")
@@ -160,30 +160,30 @@ class VLCApp:
     # Called when a set time console command is run
     def set_video_time(self, time):
 
+        hour = min = sec = 0
+
         # XX:XX case
         if bool(re.fullmatch(r"\d{2}:\d{2}", time)):
             min, sec = time.split(":")
 
         # XXXX case
-        elif bool(re.fullmatch(r"\d{4}", time)):
+        elif bool(re.fullmatch(r"\d{4}|\d{3}", time)):
             min = time[:2]
             # test making changes
             sec = time[2:]
 
-        # XXX case
-        elif bool(re.fullmatch(r"\d{3}", time)):
+        elif bool(re.fullmatch(r"\d{2}|\d{1}", time)):
             min = time
 
-
-        # Still need an XX case, X case, and X:XX:XX case
-
+        elif bool(re.fullmatch(r"\d{1}:\d{2}:\d{2}", time)):
+            hour, min, sec = time.split(":")
 
         # Valid second input check
-        if int(sec) > 59:
+        if int(sec) > 59 or int(min) > 59:
             return
 
         # Time to ms
-        time_ms = (int(min) * 60 + int(sec)) * 1000
+        time_ms = (int(hour) * 3600 + int(min) * 60 + int(sec)) * 1000
         self.player.set_time(time_ms)
 
         print(min, sec)
@@ -238,12 +238,12 @@ class VLCApp:
 
     # Called from :next console input. Gets next file in folder and plays it
     def play_next_file(self):
-        path = self.get_next_file()
+        self.curr_path = self.get_next_file()
 
         if self.player.is_playing():
             self.player.stop()
 
-        new_media_obj = self.vlc_instance.media_new(path)
+        new_media_obj = self.vlc_instance.media_new(self.curr_path)
 
         self.player.set_media(new_media_obj)
         self.player.play()
@@ -252,7 +252,8 @@ class VLCApp:
     def create_progress_bar(self):
         # Create and pack progress bar frame
         self.progress_frame = tk.Frame(self.button_frame, bg=self.button_color, height=30)
-        self.progress_frame.pack(fill=tk.X, padx=10, pady=10)
+        # self.progress_frame.pack(fill=tk.X, padx=10, pady=10)
+        self.progress_frame.grid(row=0, column=1, sticky="ew", padx=10, pady=10)
 
         # Create and pack current runtime of video playing to the left of bar
         self.curr_time = tk.Label(self.progress_frame, text="00:00", bg=self.button_color)
