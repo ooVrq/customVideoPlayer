@@ -92,12 +92,20 @@ class VLCApp:
         self.button_color = "MediumPurple3"
         self.button_frame = tk.Frame(self.root, bg=self.button_color)
 
+        self.button_frame.grid_rowconfigure(0, weight=1)
+        self.button_frame.grid_rowconfigure(1, weight=1)
+        self.button_frame.grid_columnconfigure(0, weight=1)
+        self.button_frame.grid_columnconfigure(1, weight=1)
+        self.button_frame.grid_columnconfigure(2, weight=0)
+        self.button_frame.grid_columnconfigure(2, weight=0)
+
         # Start program by packing or unpacking button frame
         #self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Frame for centering buttons
         self.center_frame = tk.Frame(self.button_frame, bg=self.button_color)
-        self.center_frame.pack(side=tk.TOP, padx=10, pady=5)
+        # self.center_frame.pack(side=tk.TOP, padx=10, pady=5)
+        self.center_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5)
 
         # Pause Button
         self.play_image = Image.open("icons/isplay.png")
@@ -106,18 +114,22 @@ class VLCApp:
         self.pause_photo = ImageTk.PhotoImage(self.pause_image)
         self.pause_button = tk.Button(self.center_frame, image=self.play_photo, command=self.pause_video,)
         self.pause_button.pack(side=tk.LEFT, padx=5)
+        # self.pause_button.grid(row=0, column=0, padx=5)
 
         # Fullscreen Button
         self.fullscreen_image = Image.open("icons/fullscreen.png")
         self.fullscreen_photo = ImageTk.PhotoImage(self.fullscreen_image)
         self.toggle_fullscreen = tk.Button(self.center_frame, image=self.fullscreen_photo, command=self.set_fullscreen)
         self.toggle_fullscreen.pack(side=tk.LEFT, padx=5)
+        # self.toggle_fullscreen.grid(row=0,column=1, padx=5)
 
         # Volume Slider
         self.volume_label = tk.Label(self.button_frame, text="Volume: 0%")
         self.volume_slider = ttk.Scale(self.button_frame, from_=0, to=100, orient=tk.HORIZONTAL,  command=self.slider_volume)
-        self.volume_label.pack(side=tk.RIGHT, padx=5)
-        self.volume_slider.pack(side=tk.RIGHT, padx=5)
+        # self.volume_label.pack(side=tk.RIGHT, padx=5)
+        self.volume_label.grid(row=0, column=2, padx=(5,0), sticky="e")
+        # self.volume_slider.pack(side=tk.RIGHT, padx=5)
+        self.volume_slider.grid(row=0, column=3, padx=(5, 10), sticky="e")
 
     def create_console(self):
         font_style = tkFont.Font(family="Courier New", size=12, weight="normal")
@@ -253,19 +265,24 @@ class VLCApp:
         # Create and pack progress bar frame
         self.progress_frame = tk.Frame(self.button_frame, bg=self.button_color, height=30)
         # self.progress_frame.pack(fill=tk.X, padx=10, pady=10)
-        self.progress_frame.grid(row=0, column=1, sticky="ew", padx=10, pady=10)
+        self.progress_frame.grid(row=1, column=0, columnspan=3, sticky="ew", padx=10, pady=10)
+
+        self.progress_frame.grid_columnconfigure(1, weight=1)
 
         # Create and pack current runtime of video playing to the left of bar
         self.curr_time = tk.Label(self.progress_frame, text="00:00", bg=self.button_color)
-        self.curr_time.pack(side=tk.LEFT, padx=(0, 5))
+        # self.curr_time.pack(side=tk.LEFT, padx=(0, 5))
+        self.curr_time.grid(row=0, column=0, padx=(0, 5))
 
         # Create and pack total runtime of video playing to the right of bar
         self.total_time = tk.Label(self.progress_frame, text="00:00", bg=self.button_color)
-        self.total_time.pack(side=tk.RIGHT, padx=(5, 0))
+        # self.total_time.pack(side=tk.RIGHT, padx=(5, 0))
+        self.total_time.grid(row=0, column=2, padx=(5, 0))
 
         # Creation of progress bar
         self.progress_bar = tk.Canvas(self.progress_frame, bg="lightgray", height=20)
-        self.progress_bar.pack(fill=tk.BOTH, expand=True)
+        # self.progress_bar.pack(fill=tk.BOTH, expand=True)
+        self.progress_bar.grid(row=0, column=1, sticky="ew")
 
         self.bg_color = "lightgray"
         self.progress_bg = self.progress_bar.create_rectangle(0, 0, 0, 20, fill=self.bg_color, outline="")
