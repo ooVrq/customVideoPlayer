@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 import os
 from tkinter import filedialog
 import re
@@ -14,6 +15,9 @@ class VLCApp:
         # Initial root video frame
         self.root = tk.Tk()
         self.root.title("oVideo")
+        self.root.configure(bg="black")
+
+        self.root.iconbitmap("icons/icon.ico")
 
         # Initial size of video player
         x = 1000
@@ -45,38 +49,56 @@ class VLCApp:
         # Variable for checking update time for bar slider throttling to reduce lag
         self.last_update_time = 0
 
-        # Handle turning on/off keybinds for console input
+        # Set current path to nothing to ensure :s working
+        self.curr_path = ""
+
+        # Set current audio and sub track to defaults
+        self.curr_audio_track = 1
+        self.curr_sub_track = -1
+
+        # Handle turning on/off keybinds.txt for console input
+        self.load_keybinds()
         self.enable_keybinds()
         self.console_input.bind("<FocusIn>", self.disable_keybinds)
         self.console_input.bind("<FocusOut>", self.enable_keybinds)
 
+    def load_keybinds(self):
+        self.keybinds = {}
+        with open("keybinds.txt", "r") as file:
+            for line in file:
+                if "=" in line:
+                    key, function_name = line.strip().split("=")
+                    key = key.strip()
+                    function_name = function_name.strip()
+                    self.keybinds[function_name] = key
+
+        print(self.keybinds)
+
+
     # Enable and disabling every keybind
     def enable_keybinds(self, event=None):
-        self.root.bind("<KeyPress-z>", self.show_buttons_keybind)
-        self.root.bind("<KeyRelease-z>", self.hide_buttons_keybind)
-        self.root.bind("<KeyPress-space>", self.pause_video)
-        self.root.bind("<KeyPress-f>", self.set_fullscreen)
-        self.root.bind("<KeyPress-m>", self.mute_audio_keybind)
+        for function_name, key in self.keybinds.items():
+            function = getattr(self, function_name, None)
+            if function:
+                self.root.bind(f"<KeyPress-{key}>", function)
+
+        self.root.bind(f"<KeyRelease-{self.keybinds.get("show_buttons_keybind")}>", self.hide_buttons_keybind)
         self.root.bind("<KeyPress-Escape>", self.unfullscreen_keybind)
         self.root.bind("<KeyPress-Left>", self.skip_time_keybind)
         self.root.bind("<KeyPress-Right>", self.skip_time_keybind)
         self.root.bind("<KeyPress-Up>", self.volume_keybind)
         self.root.bind("<KeyPress-Down>", self.volume_keybind)
-        self.root.bind("<KeyPress-:>", self.show_console)
         self.console_input.unbind("<Return>")
 
     def disable_keybinds(self, event=None):
-        self.root.unbind("<KeyPress-z>")
-        self.root.unbind("<KeyRelease-z>")
-        self.root.unbind("<KeyPress-space>")
-        self.root.unbind("<KeyPress-f>")
-        self.root.unbind("<KeyPress-m>")
+        for function, key in self.keybinds.items():
+            self.root.unbind(f"<KeyPress-{key}>")
+        self.root.unbind(f"<KeyRelease-{self.keybinds.get("show_buttons_keybind")}>")
         self.root.unbind("<KeyPress-Escape>")
         self.root.unbind("<KeyPress-Left>")
         self.root.unbind("<KeyPress-Right>")
         self.root.unbind("<KeyPress-Up>")
         self.root.unbind("<KeyPress-Down>")
-        self.root.unbind("<KeyPress-:>")
         self.console_input.bind("<Return>", self.check_input)
 
     # When the video player is closed
@@ -99,29 +121,55 @@ class VLCApp:
 
         # Start program by packing or unpacking button frame
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
-
-        self.top_frame = tk.Frame(self.button_frame, bg=self.button_color)
-        self.top_frame.grid(row=0, column=0, sticky="ew", columnspan=3, padx=10, pady=5)
+        self.bottom_frame = tk.Frame(self.button_frame, bg=self.button_color)
+        self.bottom_frame.grid(row=1, column=0, sticky="ew", columnspan=3, padx=10, pady=5)
 
         # Pause Button
         self.play_image = Image.open("icons/isplay.png")
+        self.play_image = self.play_image.resize((25, 25))
         self.play_photo = ImageTk.PhotoImage(self.play_image)
         self.pause_image = Image.open("icons/ispause.png")
+        self.pause_image = self.pause_image.resize((25, 25))
         self.pause_photo = ImageTk.PhotoImage(self.pause_image)
-        self.pause_button = tk.Button(self.top_frame, image=self.play_photo, command=self.pause_video,)
-        self.pause_button.pack(side=tk.LEFT, padx=5)
+        self.pause_button = tk.Button(self.bottom_frame, image=self.play_photo, command=self.pause_video,)
 
         # Fullscreen Button
         self.fullscreen_image = Image.open("icons/fullscreen.png")
+        self.fullscreen_image = self.fullscreen_image.resize((20, 20))
         self.fullscreen_photo = ImageTk.PhotoImage(self.fullscreen_image)
-        self.toggle_fullscreen = tk.Button(self.top_frame, image=self.fullscreen_photo, command=self.set_fullscreen)
-        self.toggle_fullscreen.pack(side=tk.LEFT, padx=5)
+        self.toggle_fullscreen = tk.Button(self.bottom_frame, image=self.fullscreen_photo, command=self.set_fullscreen)
 
         # Volume Slider
-        self.volume_label = tk.Label(self.top_frame, text="Volume: 0%", width=10)
-        self.volume_slider = ttk.Scale(self.top_frame, from_=0, to=100, orient=tk.HORIZONTAL,  command=self.slider_volume)
-        self.volume_label.pack(side=tk.RIGHT, padx=5)
+        self.volume_label = tk.Label(self.bottom_frame, text="0%", width=4, bg=self.button_color)
+        self.volume_slider = ttk.Scale(self.bottom_frame, from_=0, to=100, orient=tk.HORIZONTAL,  command=self.slider_volume)
+        self.volume_label.pack(side=tk.RIGHT, padx=0)
         self.volume_slider.pack(side=tk.RIGHT, padx=5)
+
+        # Prev Button
+        self.prev_image = Image.open("icons/previous.png")
+        self.prev_image = self.prev_image.resize((20, 20))
+        self.prev_photo = ImageTk.PhotoImage(self.prev_image)
+        self.prev_button = tk.Button(self.bottom_frame, image=self.prev_photo, command=self.previous_video)
+
+        # Stop Button
+        self.stop_image = Image.open("icons/stop.png")
+        self.stop_image = self.stop_image.resize((20, 20))
+        self.stop_photo = ImageTk.PhotoImage(self.stop_image)
+        self.stop_button = tk.Button(self.bottom_frame, image=self.stop_photo, command=self.stop_video)
+
+        # Next Button
+        self.next_image = Image.open("icons/next.png")
+        self.next_image = self.next_image.resize((20, 20))
+        self.next_photo = ImageTk.PhotoImage(self.next_image)
+        self.next_button = tk.Button(self.bottom_frame, image=self.next_photo, command=self.next_video)
+
+
+        # Pack all buttons
+        self.pause_button.pack(side=tk.LEFT, padx=5)
+        self.prev_button.pack(side=tk.LEFT, padx=(20, 5))
+        self.stop_button.pack(side=tk.LEFT, padx=5)
+        self.next_button.pack(side=tk.LEFT, padx=(5, 0))
+        self.toggle_fullscreen.pack(side=tk.LEFT, padx=(20, 5))
 
     def create_console(self):
         font_style = tkFont.Font(family="Courier New", size=12, weight="normal")
@@ -147,7 +195,8 @@ class VLCApp:
     # Called on enter key. Handles all commands sent through console
     def check_input(self, event=None):
         input = self.console_input.get()
-        print(input)
+        if input == "s" or input == "save":
+            self.save_progress()
         if input == "pause":
             self.player.pause()
         if input == "play":
@@ -155,7 +204,14 @@ class VLCApp:
         if bool(re.fullmatch(r"\d{4}|\d{2}:\d{2}|\d{3}|\d{2}|\d{1}|\d{1}:\d{2}:\d{2}", input)):
             self.set_video_time(input)
         if input == "setfile" or input == "sf" or input == "next":
+            self.save_progress()
             self.play_video(input)
+        if input == "setfolder":
+            self.open_from_save()
+        if input == "cyclesub":
+            self.cycle_subtitle()
+        if input == "cycleaudio":
+            self.cycle_audio()
 
         # Hides console frame and sets focus back on root after checking command
         self.console_frame.pack_forget()
@@ -171,11 +227,13 @@ class VLCApp:
             min, sec = time.split(":")
 
         # XXXX case
-        elif bool(re.fullmatch(r"\d{4}|\d{3}", time)):
+        elif bool(re.fullmatch(r"\d{4}", time)):
             min = time[:2]
-            # test making changes
             sec = time[2:]
 
+        elif bool(re.fullmatch(r"\d{3}", time)):
+            min = time[0]
+            sec = time[1:]
         elif bool(re.fullmatch(r"\d{2}|\d{1}", time)):
             min = time
 
@@ -183,14 +241,12 @@ class VLCApp:
             hour, min, sec = time.split(":")
 
         # Valid second input check
-        if int(sec) > 59 or int(min) > 59:
+        if int(sec) > 59:
             return
 
         # Time to ms
         time_ms = (int(hour) * 3600 + int(min) * 60 + int(sec)) * 1000
         self.player.set_time(time_ms)
-
-        print(min, sec)
 
     # Initial creation of canvas where video is played
     def create_video(self):
@@ -212,6 +268,7 @@ class VLCApp:
 
             self.player.set_media(file)
             self.player.play()
+            self.root.title("oVideo - Playing: " + os.path.basename(self.curr_path)[:-4])
         elif input == "next":
             self.play_next_file()
 
@@ -251,13 +308,40 @@ class VLCApp:
 
         self.player.set_media(new_media_obj)
         self.player.play()
+        self.root.title("oVideo - Playing: " + os.path.basename(self.curr_path)[:-4])
+
+    def play_prev_file(self):
+        self.curr_path = self.get_prev_file()
+
+        if self.player.is_playing():
+            self.player.stop()
+
+        new_media_obj = self.vlc_instance.media_new(self.curr_path)
+
+        self.player.set_media(new_media_obj)
+        self.player.play()
+        self.root.title("oVideo - Playing: " + os.path.basename(self.curr_path)[:-4])
+
+    def get_prev_file(self):
+        file_path = self.curr_path
+        file_directory = os.path.dirname(file_path)
+        files = sorted(os.listdir(file_directory))
+
+        raw_file_name = os.path.basename(file_path)
+
+        # Use a try to catch last file in folder error
+        try:
+            curr_index = files.index(raw_file_name)
+            return os.path.join(file_directory, files[curr_index - 1])
+        except IndexError:
+            print("Last file in Folder")
 
     # Creation of progress bar
     def create_progress_bar(self):
         # Create and pack progress bar frame
         self.progress_frame = tk.Frame(self.button_frame, bg=self.button_color, height=30)
         # self.progress_frame.pack(fill=tk.X, padx=10, pady=10)
-        self.progress_frame.grid(row=1, column=0, columnspan=3, sticky="ew", padx=10, pady=10)
+        self.progress_frame.grid(row=0, column=0, columnspan=3, sticky="ew", padx=10, pady=(5, 2))
 
         self.progress_frame.grid_columnconfigure(1, weight=1)
 
@@ -272,7 +356,7 @@ class VLCApp:
         self.total_time.grid(row=0, column=2, padx=(5, 0))
 
         # Creation of progress bar
-        self.progress_bar = tk.Canvas(self.progress_frame, bg="lightgray", height=20)
+        self.progress_bar = tk.Canvas(self.progress_frame, bg="lightgray", height=15)
         # self.progress_bar.pack(fill=tk.BOTH, expand=True)
         self.progress_bar.grid(row=0, column=1, sticky="ew")
 
@@ -360,7 +444,6 @@ class VLCApp:
     # Called when fullscreen button or keybind is pressed
     def set_fullscreen(self, event=None):
         fullscreen_state = self.player.get_fullscreen()
-        print(fullscreen_state)
         self.player.set_fullscreen(not fullscreen_state)
         self.root.attributes("-fullscreen", not fullscreen_state)
 
@@ -388,7 +471,7 @@ class VLCApp:
         self.player.set_fullscreen(False)
         self.root.attributes("-fullscreen", False)
 
-    # Handles time skipping related keybinds
+    # Handles time skipping related keybinds.txt
     def skip_time_keybind(self, event=None):
         current_time = self.player.get_time()
 
@@ -399,24 +482,148 @@ class VLCApp:
             new_time = current_time + 5 * 1000
             self.player.set_time(new_time)
 
-    # Handles volume keybinds
+    # Handles volume keybinds.txt
     def volume_keybind(self, event=None):
         curr_volume = self.player.audio_get_volume()
-        print(curr_volume)
         if event.keysym == "Up":
-            new_volume = curr_volume + 10
+            new_volume = curr_volume + 5
             if new_volume > 100:
                 new_volume = 100
             self.player.audio_set_volume(new_volume)
+            self.update_volume_bar(new_volume)
         elif event.keysym == "Down":
-            new_volume = curr_volume - 10
+            new_volume = curr_volume - 5
             if new_volume < 0:
                 new_volume = 0
             self.player.audio_set_volume(new_volume)
+            self.update_volume_bar(new_volume)
 
     # Still unimplemented - Handles functionality of volume slider in button menu
     def slider_volume(self, event=None):
         volume = int(self.volume_slider.get())
-        self.volume_label.config(text="Volume: " + str(volume)+"%")
+        self.volume_label.config(text=str(volume)+"%")
         self.player.audio_set_volume(volume)
-        print(self.player.audio_get_volume())
+
+    def update_volume_bar(self, volume):
+        self.volume_label.config(text=str(volume)+"%")
+        self.volume_slider.set(volume)
+
+    def previous_video(self, event=None):
+        self.play_prev_file()
+
+    def next_video(self, event=None):
+        self.play_next_file()
+
+    def stop_video(self, event=None):
+        self.player.stop()
+        self.curr_path = ""
+
+    def anime_skip(self, event=None):
+        current_time = self.player.get_time()
+        new_time = current_time + 5 * 1000
+        self.player.set_time(max(new_time, 0))
+
+    # Handles all saving progress of videos
+    def save_progress(self):
+        # Get the video object from player
+        current_file = self.curr_path
+
+        # Check if video is actually being played before starting save
+        if current_file != "":
+            file_name = os.path.basename(current_file)
+            dir_name = os.path.dirname(current_file)
+
+            files_in_dir = sorted(os.listdir(dir_name))
+
+            current_time = self.player.get_time()
+
+            with open("saveData.txt", "r") as data:
+                data_list = data.readlines()
+
+            found_dir = False
+            replace_data = False
+
+            for i in range(len(data_list)):
+                if data_list[i].lstrip("d").rstrip("\n") == dir_name:
+                    found_dir = True
+                    old_path = data_list[i + 1].lstrip("f").rstrip("\n")
+                    old_time = int(data_list[i + 2].lstrip("t").rstrip("\n"))
+
+                    old_index = files_in_dir.index(old_path)
+                    new_index = files_in_dir.index(file_name)
+
+                    if new_index > old_index:
+                        data_list[i + 1] = "f" + file_name + "\n"
+                        data_list[i + 2] = "t" + str(current_time) + "\n"
+                        replace_data = True
+                        break
+                    elif new_index == old_index:
+                        if current_time > old_time:
+                            data_list[i + 1] = "f" + file_name + "\n"
+                            data_list[i + 2] = "t" + str(current_time) + "\n"
+                            replace_data = True
+                            break
+
+            if replace_data:
+                print("Data has been replaced")
+            else:
+                print("Data not replaced")
+            # Adds new directory entry as the current save
+            if not found_dir:
+                data_list.append("d" + dir_name + "\n")
+                data_list.append("f" + file_name + "\n")
+                data_list.append("t" + str(current_time) + "\n")
+            with open("saveData.txt", "w") as data:
+                data.writelines(data_list)
+
+    # Handles opening from a save file
+    def open_from_save(self, event=None):
+        dir_path = filedialog.askdirectory(title="Select a Folder")
+
+        with open("saveData.txt", "r") as data:
+            data_list = data.readlines()
+
+        full_path = ""
+        time = 0
+        save_found = False
+
+        for i in range(len(data_list)):
+            if data_list[i].startswith("d"):
+                raw_dir = data_list[i].lstrip("d").rstrip("\n")
+
+                if raw_dir == dir_path:
+                    file_name = data_list[i + 1].lstrip("f").rstrip("\n")
+                    time = int(data_list[i + 2].lstrip("t").rstrip("\n"))
+                    full_path = os.path.join(dir_path, file_name)
+                    save_found = True
+                    break
+
+        if save_found:
+            file = self.vlc_instance.media_new(full_path)
+
+            if self.player.is_playing():
+                self.player.stop()
+
+            self.player.set_media(file)
+            self.player.play()
+            self.player.set_time(time)
+            self.curr_path = full_path
+            self.root.title("oVideo - Playing: " + file_name[:-4])
+
+
+        else:
+            messagebox.showinfo("Error", "Save data not found")
+
+    def cycle_subtitle(self, event=None):
+        subtitle_tracks = self.player.video_get_spu_description()
+        if len(subtitle_tracks) > 0:
+            self.curr_sub_track = (self.curr_sub_track + 1) % len(subtitle_tracks)
+            self.player.video_set_spu(subtitle_tracks[self.curr_sub_track][0])
+
+
+    def cycle_audio(self, event=None):
+        audio_tracks = self.player.audio_get_track_description()
+        print(self.player.audio_get_track_description())
+        if len(audio_tracks) > 0:
+            self.curr_audio_track = (self.curr_audio_track + 1) % len(audio_tracks)
+            # self.player.audio_set_track(audio_tracks[self.curr_audio_track][0])

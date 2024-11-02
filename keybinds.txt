@@ -1,0 +1,8 @@
+z = show_buttons_keybind
+space = pause_video
+f = set_fullscreen
+m = mute_audio_keybind
+: = show_console
+> = next_video
+< = previous_video
+d = anime_skip
