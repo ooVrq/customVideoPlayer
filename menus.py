@@ -121,7 +121,7 @@ class VLCApp:
         self.button_frame.grid_columnconfigure(1, weight=1)
 
         # Start program by packing or unpacking button frame
-        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        # self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
         self.bottom_frame = tk.Frame(self.button_frame, bg=self.button_color)
         self.bottom_frame.grid(row=1, column=0, sticky="ew", columnspan=3, padx=10, pady=5)
 
