@@ -103,6 +103,7 @@ class VLCApp:
 
     # When the video player is closed
     def window_closed(self):
+        self.save_progress()
         self.player.stop()
         self.player.release()
         self.root.destroy()
@@ -163,7 +164,6 @@ class VLCApp:
         self.next_photo = ImageTk.PhotoImage(self.next_image)
         self.next_button = tk.Button(self.bottom_frame, image=self.next_photo, command=self.next_video)
 
-
         # Pack all buttons
         self.pause_button.pack(side=tk.LEFT, padx=5)
         self.prev_button.pack(side=tk.LEFT, padx=(20, 5))
@@ -206,7 +206,7 @@ class VLCApp:
         if input == "setfile" or input == "sf" or input == "next":
             self.save_progress()
             self.play_video(input)
-        if input == "setfolder":
+        if input == "playlist":
             self.open_from_save()
         if input == "cyclesub":
             self.cycle_subtitle()
@@ -520,7 +520,7 @@ class VLCApp:
 
     def anime_skip(self, event=None):
         current_time = self.player.get_time()
-        new_time = current_time + 5 * 1000
+        new_time = current_time + 89 * 1000
         self.player.set_time(max(new_time, 0))
 
     # Handles all saving progress of videos
@@ -564,10 +564,6 @@ class VLCApp:
                             replace_data = True
                             break
 
-            if replace_data:
-                print("Data has been replaced")
-            else:
-                print("Data not replaced")
             # Adds new directory entry as the current save
             if not found_dir:
                 data_list.append("d" + dir_name + "\n")
@@ -626,4 +622,4 @@ class VLCApp:
         print(self.player.audio_get_track_description())
         if len(audio_tracks) > 0:
             self.curr_audio_track = (self.curr_audio_track + 1) % len(audio_tracks)
-            # self.player.audio_set_track(audio_tracks[self.curr_audio_track][0])
+            self.player.audio_set_track(audio_tracks[self.curr_audio_track][0])
