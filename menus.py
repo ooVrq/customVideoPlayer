@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from tkinter import messagebox
 import os
 from tkinter import filedialog
@@ -11,13 +12,21 @@ from PIL import Image, ImageTk
 import time
 
 class VLCApp:
-    def __init__(self):
+    def __init__(self, root, video_file = None):
         # Initial root video frame
-        self.root = tk.Tk()
+        self.root = root
         self.root.title("oVideo")
         self.root.configure(bg="black")
 
-        self.root.iconbitmap("icons/icon.ico")
+
+        if getattr(sys, "frozen", False):
+            self.base_path = os.path.dirname(sys.executable)
+            os.chdir(os.path.dirname(sys.executable))
+        else:
+            self.base_path = os.path.dirname(os.path.abspath(__file__))
+            os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+        self.root.iconbitmap(os.path.join(self.base_path, "icons", "icon.ico"))
 
         # Initial size of video player
         x = 1000
@@ -56,6 +65,9 @@ class VLCApp:
         self.curr_audio_track = 1
         self.curr_sub_track = -1
 
+        if video_file:
+            self.load_video(video_file)
+
         # Handle turning on/off keybinds.txt for console input
         self.load_keybinds()
         self.enable_keybinds()
@@ -64,16 +76,14 @@ class VLCApp:
 
     def load_keybinds(self):
         self.keybinds = {}
-        with open("keybinds.txt", "r") as file:
+        keybinds_path = os.path.join(self.base_path, 'keybinds.txt')
+        with open(keybinds_path, "r") as file:
             for line in file:
                 if "=" in line:
                     key, function_name = line.strip().split("=")
                     key = key.strip()
                     function_name = function_name.strip()
                     self.keybinds[function_name] = key
-
-        print(self.keybinds)
-
 
     # Enable and disabling every keybind
     def enable_keybinds(self, event=None):
@@ -204,7 +214,6 @@ class VLCApp:
         if bool(re.fullmatch(r"\d{4}|\d{2}:\d{2}|\d{3}|\d{2}|\d{1}|\d{1}:\d{2}:\d{2}", input)):
             self.set_video_time(input)
         if input == "setfile" or input == "sf" or input == "next":
-            self.save_progress()
             self.play_video(input)
         if input == "playlist":
             self.open_from_save()
@@ -252,6 +261,9 @@ class VLCApp:
     def create_video(self):
         self.video_frame = tk.Canvas(self.root, bg="purple")
         self.video_frame.pack(fill=tk.BOTH, expand=True)
+        self.video_frame.drop_target_register(DND_FILES)
+        self.video_frame.dnd_bind('<<Drop>>', self.on_drop)
+
 
     # Sets output (currently only windows supported)
     def set_output(self):
@@ -260,19 +272,34 @@ class VLCApp:
     # Handles :sf and :next commands
     def play_video(self, input):
         if self.player.is_playing():
+            self.save_progress()
             self.player.stop()
 
-        if input == "sf" or input == "setfile":
-            self.get_new_file()
-            file = self.vlc_instance.media_new(self.curr_path)
-
+        if input == "next":
+            self.play_next_file()
+        else:
+            if input == "sf" or input == "setfile":
+                self.get_new_file()
+                file = self.vlc_instance.media_new(self.curr_path)
+            else:
+                self.curr_path = input
+                file = self.vlc_instance.media_new(input)
             self.player.set_media(file)
             self.player.play()
             self.root.title("oVideo - Playing: " + os.path.basename(self.curr_path)[:-4])
-        elif input == "next":
-            self.play_next_file()
 
         self.volume_slider.set(self.player.audio_get_volume())
+
+    def on_drop(self, event):
+        # Does not work if video is being played
+        if self.player.is_playing():
+            messagebox.showwarning("Error", "You cannot drag and drop while a video is running. Stop playback first.")
+            return
+
+        path = event.data.lstrip("{").rstrip("}")
+        if os.path.isfile(path):
+            self.play_video(path)
+
 
     # Called through the play_video method to prompt file input from user. Sets curr_path
     # to file user selects
@@ -530,14 +557,17 @@ class VLCApp:
 
         # Check if video is actually being played before starting save
         if current_file != "":
+            save_path = os.path.join(self.base_path, "saveData.txt")
+
             file_name = os.path.basename(current_file)
+
             dir_name = os.path.dirname(current_file)
 
             files_in_dir = sorted(os.listdir(dir_name))
 
             current_time = self.player.get_time()
 
-            with open("saveData.txt", "r") as data:
+            with open(save_path, "r") as data:
                 data_list = data.readlines()
 
             found_dir = False
@@ -569,14 +599,17 @@ class VLCApp:
                 data_list.append("d" + dir_name + "\n")
                 data_list.append("f" + file_name + "\n")
                 data_list.append("t" + str(current_time) + "\n")
-            with open("saveData.txt", "w") as data:
+            with open(save_path, "w") as data:
                 data.writelines(data_list)
 
     # Handles opening from a save file
-    def open_from_save(self, event=None):
-        dir_path = filedialog.askdirectory(title="Select a Folder")
+    def open_from_save(self, event=None, dir_path=None):
+        if not dir_path:
+            dir_path = filedialog.askdirectory(title="Select a Folder")
 
-        with open("saveData.txt", "r") as data:
+        save_path = os.path.join(self.base_path, "saveData.txt")
+
+        with open(save_path, "r") as data:
             data_list = data.readlines()
 
         full_path = ""
@@ -623,3 +656,13 @@ class VLCApp:
         if len(audio_tracks) > 0:
             self.curr_audio_track = (self.curr_audio_track + 1) % len(audio_tracks)
             self.player.audio_set_track(audio_tracks[self.curr_audio_track][0])
+
+    def load_video(self, path):
+        if os.path.isdir(path):
+            self.open_from_save(dir_path=path)
+        else:
+            video = self.vlc_instance.media_new(path)
+            self.player.set_media(video)
+            self.player.play()
+            self.curr_path = path
+            self.root.title("oVideo - Playing: " + os.path.basename(path)[:-4])
