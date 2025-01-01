@@ -12,7 +12,7 @@ from PIL import Image, ImageTk
 import time
 
 class VLCApp:
-    def __init__(self, root, video_file = None):
+    def __init__(self, root, video_file=None):
         # Initial root video frame
         self.root = root
         self.root.title("oVideo")
@@ -152,7 +152,7 @@ class VLCApp:
 
         # Volume Slider
         self.volume_label = tk.Label(self.bottom_frame, text="0%", width=4, bg=self.button_color)
-        self.volume_slider = ttk.Scale(self.bottom_frame, from_=0, to=100, orient=tk.HORIZONTAL,  command=self.slider_volume)
+        self.volume_slider = ttk.Scale(self.bottom_frame, from_=0, to=150, orient=tk.HORIZONTAL,  command=self.slider_volume)
         self.volume_label.pack(side=tk.RIGHT, padx=0)
         self.volume_slider.pack(side=tk.RIGHT, padx=5)
 
@@ -213,14 +213,20 @@ class VLCApp:
             self.player.play()
         if bool(re.fullmatch(r"\d{4}|\d{2}:\d{2}|\d{3}|\d{2}|\d{1}|\d{1}:\d{2}:\d{2}", input)):
             self.set_video_time(input)
-        if input == "setfile" or input == "sf" or input == "next":
+        if input == "setfile" or input == "sf" or input == "next" or input == "open":
             self.play_video(input)
-        if input == "playlist":
+        if input == "playlist" or input == "openfolder":
             self.open_from_save()
         if input == "cyclesub":
             self.cycle_subtitle()
         if input == "cycleaudio":
             self.cycle_audio()
+        if input == "fixsavefile":
+            self.fix_save_file()
+        if input == "sda":
+            self.audio_popup()
+        if input == "sds":
+            self.sub_popup()
 
         # Hides console frame and sets focus back on root after checking command
         self.console_frame.pack_forget()
@@ -278,7 +284,7 @@ class VLCApp:
         if input == "next":
             self.play_next_file()
         else:
-            if input == "sf" or input == "setfile":
+            if input == "sf" or input == "setfile" or input == "open":
                 self.get_new_file()
                 file = self.vlc_instance.media_new(self.curr_path)
             else:
@@ -286,6 +292,7 @@ class VLCApp:
                 file = self.vlc_instance.media_new(input)
             self.player.set_media(file)
             self.player.play()
+            self.set_audio_and_sub(os.path.dirname(self.curr_path))
             self.root.title("oVideo - Playing: " + os.path.basename(self.curr_path)[:-4])
 
         self.volume_slider.set(self.player.audio_get_volume())
@@ -315,6 +322,20 @@ class VLCApp:
         file_directory = os.path.dirname(file_path)
         files = sorted(os.listdir(file_directory))
 
+        fix_files = False
+
+        for i in range(len(files)):
+            if len(files[i]) < 6:
+                files[i] = "0" + files[i]
+                fix_files = True
+
+        if fix_files:
+            files = sorted(files)
+            for i in range(len(files)):
+                if files[i].startswith("0"):
+                    files[i] = files[i][1:]
+
+
         raw_file_name = os.path.basename(file_path)
 
         # Use a try to catch last file in folder error
@@ -335,6 +356,7 @@ class VLCApp:
 
         self.player.set_media(new_media_obj)
         self.player.play()
+        self.set_audio_and_sub(os.path.dirname(self.curr_path))
         self.root.title("oVideo - Playing: " + os.path.basename(self.curr_path)[:-4])
 
     def play_prev_file(self):
@@ -347,6 +369,7 @@ class VLCApp:
 
         self.player.set_media(new_media_obj)
         self.player.play()
+        self.set_audio_and_sub(os.path.dirname(self.curr_path))
         self.root.title("oVideo - Playing: " + os.path.basename(self.curr_path)[:-4])
 
     def get_prev_file(self):
@@ -470,7 +493,7 @@ class VLCApp:
 
     # Called when fullscreen button or keybind is pressed
     def set_fullscreen(self, event=None):
-        fullscreen_state = self.player.get_fullscreen()
+        fullscreen_state = self.root.attributes("-fullscreen")
         self.player.set_fullscreen(not fullscreen_state)
         self.root.attributes("-fullscreen", not fullscreen_state)
 
@@ -514,8 +537,8 @@ class VLCApp:
         curr_volume = self.player.audio_get_volume()
         if event.keysym == "Up":
             new_volume = curr_volume + 5
-            if new_volume > 100:
-                new_volume = 100
+            if new_volume > 150:
+                new_volume = 150
             self.player.audio_set_volume(new_volume)
             self.update_volume_bar(new_volume)
         elif event.keysym == "Down":
@@ -525,7 +548,6 @@ class VLCApp:
             self.player.audio_set_volume(new_volume)
             self.update_volume_bar(new_volume)
 
-    # Still unimplemented - Handles functionality of volume slider in button menu
     def slider_volume(self, event=None):
         volume = int(self.volume_slider.get())
         self.volume_label.config(text=str(volume)+"%")
@@ -540,6 +562,7 @@ class VLCApp:
 
     def next_video(self, event=None):
         self.play_next_file()
+        self.save_progress()
 
     def stop_video(self, event=None):
         self.player.stop()
@@ -551,20 +574,16 @@ class VLCApp:
         self.player.set_time(max(new_time, 0))
 
     # Handles all saving progress of videos
-    def save_progress(self):
+    def save_progress(self, sub_track=None, audio_track=None):
         # Get the video object from player
         current_file = self.curr_path
 
         # Check if video is actually being played before starting save
         if current_file != "":
             save_path = os.path.join(self.base_path, "saveData.txt")
-
             file_name = os.path.basename(current_file)
-
             dir_name = os.path.dirname(current_file)
-
             files_in_dir = sorted(os.listdir(dir_name))
-
             current_time = self.player.get_time()
 
             with open(save_path, "r") as data:
@@ -594,11 +613,23 @@ class VLCApp:
                             replace_data = True
                             break
 
+                    if sub_track:
+                        data_list[i + 3] = "s" + str(sub_track) + "\n"
+                    elif audio_track:
+                        data_list[i + 4] = "a" + str(audio_track) + "\n"
+
             # Adds new directory entry as the current save
             if not found_dir:
                 data_list.append("d" + dir_name + "\n")
                 data_list.append("f" + file_name + "\n")
                 data_list.append("t" + str(current_time) + "\n")
+                if sub_track:
+                    data_list[i + 3] = "s" + str(sub_track) + "\n"
+                elif audio_track:
+                    data_list[i + 4] = "a" + str(audio_track) + "\n"
+                else:
+                    data_list.append("s\n")
+                    data_list.append("a\n")
             with open(save_path, "w") as data:
                 data.writelines(data_list)
 
@@ -627,7 +658,18 @@ class VLCApp:
                     save_found = True
                     break
 
-        if save_found:
+        else:
+            files = [file for file in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, file))]
+
+            # check if there are any files in folder
+            if files:
+                has_files = True
+                file_name = files[0]
+                full_path = os.path.join(dir_path, file_name)
+            else:
+                messagebox.showerror("Error", "No files in folder specified")
+
+        if save_found or has_files:
             file = self.vlc_instance.media_new(full_path)
 
             if self.player.is_playing():
@@ -635,24 +677,23 @@ class VLCApp:
 
             self.player.set_media(file)
             self.player.play()
+            self.set_audio_and_sub(dir_path)
             self.player.set_time(time)
             self.curr_path = full_path
             self.root.title("oVideo - Playing: " + file_name[:-4])
 
-
-        else:
-            messagebox.showinfo("Error", "Save data not found")
 
     def cycle_subtitle(self, event=None):
         subtitle_tracks = self.player.video_get_spu_description()
         if len(subtitle_tracks) > 0:
             self.curr_sub_track = (self.curr_sub_track + 1) % len(subtitle_tracks)
             self.player.video_set_spu(subtitle_tracks[self.curr_sub_track][0])
+        print(self.curr_sub_track)
 
 
     def cycle_audio(self, event=None):
         audio_tracks = self.player.audio_get_track_description()
-        print(self.player.audio_get_track_description())
+        print(audio_tracks)
         if len(audio_tracks) > 0:
             self.curr_audio_track = (self.curr_audio_track + 1) % len(audio_tracks)
             self.player.audio_set_track(audio_tracks[self.curr_audio_track][0])
@@ -664,5 +705,93 @@ class VLCApp:
             video = self.vlc_instance.media_new(path)
             self.player.set_media(video)
             self.player.play()
+            self.set_audio_and_sub(path)
             self.curr_path = path
             self.root.title("oVideo - Playing: " + os.path.basename(path)[:-4])
+
+    def fix_save_file(self, event=None):
+        save_path = os.path.join(self.base_path, "saveData.txt")
+
+        with open(save_path, "r") as data:
+            data_list = data.readlines()
+
+        j = 0
+        while j < len(data_list):
+            if data_list[j].startswith("t"):
+                data_list.insert(j + 1, "s\n")
+                data_list.insert(j + 2, "a\n")
+                j += 3
+            else:
+                j += 1
+
+        # print(data_list)
+        with open(save_path, "w") as data:
+            data.writelines(data_list)
+
+    def audio_popup(self, event=None):
+        popup_menu = tk.Menu(self.root, tearoff=0)
+
+        audio_tracks = self.player.audio_get_track_description()
+        for i in range(len(audio_tracks)):
+            popup_menu.add_command(label=audio_tracks[i], command=lambda i=i: self.set_default_audio(i))
+
+        x = self.video_frame.winfo_rootx()
+        y = self.video_frame.winfo_rooty()
+        popup_menu.post(x, y)
+
+    def set_default_audio(self, track):
+        self.curr_audio_track = track
+        self.player.audio_set_track(track)
+        self.save_audio_and_sub(track, True)
+
+    def sub_popup(self, event=None):
+        popup_menu = tk.Menu(self.root, tearoff=0)
+
+        subtitle_tracks = self.player.video_get_spu_description()
+        print(subtitle_tracks)
+        for i in range(len(subtitle_tracks)):
+            popup_menu.add_command(label=subtitle_tracks[i], command=lambda i=i: self.set_default_subtitle(subtitle_tracks[i]))
+
+        x = self.video_frame.winfo_rootx()
+        y = self.video_frame.winfo_rooty()
+        popup_menu.post(x, y)
+
+    def set_default_subtitle(self, track):
+        print(track)
+        self.curr_sub_track = track
+        self.player.video_set_spu(track[0])
+        self.save_audio_and_sub(track[0], False)
+
+    def save_audio_and_sub(self, track_num, is_audio):
+        if is_audio:
+            self.save_progress(None, track_num)
+        else:
+            self.save_progress(track_num, None)
+
+
+    def set_audio_and_sub(self, file):
+        time.sleep(1)
+        print("In method")
+        save_path = os.path.join(self.base_path, "saveData.txt")
+        with open(save_path, "r") as data:
+            data_list = data.readlines()
+
+        for i in range(len(data_list)):
+            if data_list[i].startswith("d"):
+                raw_dir = data_list[i].lstrip("d").rstrip("\n")
+
+                if raw_dir == file:
+                    if data_list[i + 3] != "s\n":
+                        track = int(data_list[i + 3].lstrip("s").rstrip("\n"))
+                        print("Sub:" + str(track))
+                        self.player.video_set_spu(track)
+
+                    if data_list[i + 4] != "a\n":
+                        track = int(data_list[i + 4].lstrip("a").rstrip("\n"))
+                        print("Audio:" + str(track))
+                        self.player.audio_set_track(track)
+
+
+
+
+

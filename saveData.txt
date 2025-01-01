@@ -1,0 +1,45 @@
+dF:/Shows/One Piece
+f[HatSubs] One Piece 1113 (WEB 1080p) v2 [36178EF6].mkv
+t96581
+s
+a
+dF:/Shows/Dandadan
+f[EMBER] Dandadan - 04.mkv
+t3405
+s4
+a1
+dF:/Shows/Blue Spring Ride
+f3.mp4
+t1401
+s
+a
+dF:/Shows/Blue Lock
+f10.mp4
+t6651
+s
+a
+dF:/Shows/Horimiya
+f[Judas] Horimiya - S01E02.mkv
+t1278
+s
+a
+dF:/Shows/Violet Evergarden
+f3.mp4
+t3401
+s
+a
+dF:/Shows/Rent a Girlfriend/S1
+f5.mp4
+t42819
+s
+a
+dF:/Shows/Chainsaw Man
+f3.mp4
+t4400
+s
+a
+dF:/Shows/Food Wars/Food Wars! Season 2 [Dual Audio]
+fFood Wars! S2 - 04.mkv
+t714
+s
+a2
