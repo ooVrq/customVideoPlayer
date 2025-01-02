@@ -623,13 +623,9 @@ class VLCApp:
                 data_list.append("d" + dir_name + "\n")
                 data_list.append("f" + file_name + "\n")
                 data_list.append("t" + str(current_time) + "\n")
-                if sub_track:
-                    data_list[i + 3] = "s" + str(sub_track) + "\n"
-                elif audio_track:
-                    data_list[i + 4] = "a" + str(audio_track) + "\n"
-                else:
-                    data_list.append("s\n")
-                    data_list.append("a\n")
+                data_list.append("s\n")
+                data_list.append("a\n")
+
             with open(save_path, "w") as data:
                 data.writelines(data_list)
 
@@ -763,6 +759,7 @@ class VLCApp:
         self.save_audio_and_sub(track[0], False)
 
     def save_audio_and_sub(self, track_num, is_audio):
+        self.save_progress()
         if is_audio:
             self.save_progress(None, track_num)
         else:
